@@ -12,8 +12,12 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import com.nekit.desafio.repositories.UserRepository;
 import com.nekit.desafio.security.AutenticacaoService;
+import com.nekit.desafio.security.AuthViaTokenFilter;
+import com.nekit.desafio.security.TokenService;
 
 @EnableWebSecurity
 @Configuration
@@ -21,6 +25,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 	
 	@Autowired
 	private AutenticacaoService autenticacaoService;
+	@Autowired
+	private TokenService tokenService;
+	@Autowired
+	private UserRepository userRepository;
 	
 	@Override
 	@Bean
@@ -28,23 +36,22 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 		return super.authenticationManager();
 	}
 	
-	// rotas privadas
-	private static final String[] PRIVATE_MATCHERS = { "/swagger/**", "/home **", "/skill **", "/userSkill **" };
 	// rotas públicas
-	private static final String[] PUBLIC_MATCHERS = { "/swagger **", "/", "/user", "/skill", "/userSkill" };
+	private static final String[] PUBLIC_MATCHERS = { "/swagger**", "/", "/user" };
 	// rotas usuário
-	private static final String[] USER_MATCHER = { "/user **", "/user", "/auth" };
+	private static final String[] USER_MATCHER = { "/user", "/auth" };
 	
 		
 	//Configuração de autorização
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
+		http.cors().and().csrf().disable();
 		http.authorizeRequests()
 			.antMatchers(HttpMethod.GET, PUBLIC_MATCHERS).permitAll()
 			.antMatchers(HttpMethod.POST, USER_MATCHER).permitAll()
-			.antMatchers(PRIVATE_MATCHERS).permitAll().anyRequest().authenticated()
-			.and().cors().and().csrf().disable()
-			.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+			.anyRequest().authenticated();
+		http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+		http.addFilterBefore(new AuthViaTokenFilter(tokenService, userRepository), UsernamePasswordAuthenticationFilter.class);
 		
 	}
 	//Configuração de autenticação

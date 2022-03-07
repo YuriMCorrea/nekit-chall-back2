@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.nekit.desafio.DTOs.TokenDTO;
 import com.nekit.desafio.forms.LoginForm;
 import com.nekit.desafio.security.TokenService;
 
@@ -29,14 +30,12 @@ public class AutenticacaoController {
 	@PostMapping
 	public ResponseEntity<?> autenticar(@RequestBody @Valid LoginForm loginForm){
 		UsernamePasswordAuthenticationToken dataLogin = loginForm.converter();
-		System.out.println(dataLogin.getPrincipal());
-		System.out.println(dataLogin.getCredentials());
-		
+
 		try {
 			Authentication authentication = authManager.authenticate(dataLogin);
 			String token = tokenService.gerarToken(authentication);
 			System.out.println(token);
-			return ResponseEntity.ok().build();
+			return ResponseEntity.ok(new TokenDTO(token, "Bearer"));
 			
 		} catch(AuthenticationException e) {
 			return ResponseEntity.badRequest().build();
